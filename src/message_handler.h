@@ -12,7 +12,7 @@ typedef unsigned int bool;
 #define TRUE 1
 #define FALSE 0
 
-//最大连接数
+//最大socket值
 #define MAX_CONNECTION 1024
 
 extern void message_handler_init();

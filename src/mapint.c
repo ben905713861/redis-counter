@@ -18,17 +18,24 @@ static unsigned int getIndex(char* str, int size);
 
 Mapint* mapint_create(int tableSize) {
 	Mapint* mapint = (Mapint*) calloc(1, sizeof(Mapint));
+	if(mapint == NULL) {
+		puts("内存不足，mapint中创建Mapint失败");
+		exit(-1);
+	}
 	mapint->tableSize = tableSize;
 	mapint->hashTable = (MapintNode**) calloc(tableSize, sizeof(MapintNode*));
-	mapint->length = 0;
 	if(mapint->hashTable == NULL) {
 		puts("内存不足，mapint中创建hashTable失败");
 		exit(-1);
 	}
+	mapint->length = 0;
 	return mapint;
 }
 
 bool mapint_add(Mapint* mapint, char* key, int value) {
+	if(strlen(key) > MAX_KEY_LEN) {
+		return FALSE;
+	}
 	unsigned int index = getIndex(key, mapint->tableSize);
 	//查出桶对应的链表头节点
 	MapintNode* node = mapint->hashTable[index];
@@ -52,7 +59,11 @@ bool mapint_add(Mapint* mapint, char* key, int value) {
 	}
 	//链表不存在相同的key，插入新节点到链头
 	MapintNode* newNode = (MapintNode*) calloc(1, sizeof(MapintNode));
-	newNode->key = key;
+	if(newNode == NULL) {
+		puts("创建MapintNode失败,内存不足");
+		return FALSE;
+	}
+	strcpy(newNode->key, key);
 	newNode->value = value;
 	newNode->nextNode = mapint->hashTable[index];
 	mapint->hashTable[index] = newNode;
@@ -152,6 +163,9 @@ MapintNode* mapint_find(Mapint* mapint, char* key) {
 //返回全部节点,该数组的最后一个元素为NULL,用以标记结束点
 MapintNode** mapint_getNodes(Mapint* mapint) {
 	MapintNode** nodes = (MapintNode**) calloc(mapint->length + 1, sizeof(MapintNode*));
+	if(nodes == NULL) {
+		return NULL;
+	}
 	int nodeIndex = 0;
 	for(int i = 0; i < mapint->tableSize; i++) {
 		//遍历链表

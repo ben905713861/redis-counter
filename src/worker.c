@@ -18,6 +18,7 @@ static void get(char* key, char* returnChars);
 static void set(char* key, char* value, char* returnChars);
 static void incr(char* key, char* returnChars);
 static void decr(char* key, char* returnChars);
+static void keys(char* param, char* returnChars);
 static void del(char* key, char* returnChars);
 static void toUpper(char* str);
 
@@ -86,6 +87,14 @@ int work(int connection, char commandParam[][MAX_COMMAND_STRLEN], char* returnCh
 		char* key = commandParam[1];
 		del(key, returnChars);
 	}
+	else if(strcmp(commandHead, "KEYS") == 0) {
+		if(strlen(commandParam[1]) == 0) {
+			strcpy(returnChars, "参数不得为空");
+			return -1;
+		}
+		char* param = commandParam[1];
+		keys(param, returnChars);
+	}
 	else {
 		sprintf(returnChars, "-ERR unknown command'%s'\r\n", commandHead);
 		return -3;
@@ -119,15 +128,6 @@ void set(char* key, char* value, char* returnChars) {
 }
 
 
-void del(char* key, char* returnChars) {
-	bool res = mapint_delete(dataMap, key);
-	if(res) {
-		strcpy(returnChars, ":1\r\n");
-	} else {
-		strcpy(returnChars, ":0\r\n");
-	}
-}
-
 void incr(char* key, char* returnChars) {
 	MapintNode* node = mapint_find(dataMap, key);
 	int value;
@@ -138,9 +138,7 @@ void incr(char* key, char* returnChars) {
 		value = node->value;
 		node->value += 1;
 	}
-	char value_str[16];
-	sprintf(value_str, "%d", value);
-	sprintf(returnChars, "$%zu\r\n%s\r\n", strlen(value_str), value_str);
+	sprintf(returnChars, ":%d\r\n", value);
 }
 
 
@@ -156,9 +154,47 @@ void decr(char* key, char* returnChars) {
 			node->value -= 1;
 		}
 	}
-	char value_str[16];
-	sprintf(value_str, "%d", value);
-	sprintf(returnChars, "$%zu\r\n%s\r\n", strlen(value_str), value_str);
+	sprintf(returnChars, ":%d\r\n", value);
+}
+
+
+void keys(char* param, char* returnChars) {
+	MapintNode** nodes = mapint_getNodes(dataMap);
+	int count = 0;
+	for(int i = 0; ; i++) {
+		if(nodes[i] == NULL) {
+			break;
+		}
+		count ++;
+	}
+	sprintf(returnChars, "*%d\r\n", count);
+	int strIndex = strlen(returnChars);
+	
+	char temp[1024];
+	size_t tempLen;
+	for(int i = 0; ; i++) {
+		MapintNode* node = nodes[i];
+		if(node == NULL) {
+			break;
+		}
+		char* key = node->key;
+		size_t keyLen = strlen(key);
+		sprintf(temp, "$%zu\r\n%s\r\n", keyLen, key);
+		tempLen = strlen(temp);
+		memcpy(returnChars + strIndex, temp, tempLen);
+		strIndex += tempLen;
+	}
+	returnChars[strIndex] = '\0';
+}
+
+
+void del(char* key, char* returnChars) {
+	bool res = mapint_delete(dataMap, key);
+	if(res) {
+		strcpy(returnChars, ":1\r\n");
+	} else {
+		strcpy(returnChars, ":0\r\n");
+	}
 }
 
 

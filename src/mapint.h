@@ -12,9 +12,10 @@ typedef unsigned int bool;
 #define TRUE 1
 #define FALSE 0
 
+#define MAX_KEY_LEN 32
 
 typedef struct MapintNode {
-	char* key;
+	char key[MAX_KEY_LEN + 1];
 	int value;
 	struct MapintNode* nextNode;
 } MapintNode;

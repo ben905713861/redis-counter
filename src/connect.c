@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -59,7 +60,7 @@ void startServer(int port) {
 	}
 
 	//listen第二个参数连接请求队列数等等
-	if(listen(listenfd, 10) == -1) {
+	if(listen(listenfd, MAX_BLOCKING_CONNECT) == -1) {
 		perror("listen socket error\n");
 		exit(-3);
 	}
@@ -112,7 +113,7 @@ void listening() {
 		}
 		
 		//对所有连接遍历,找出其中有数据流的连接,然后接收数据
-		char buff[200];
+		char msg[MAX_RECEIVE_SIZE];
 		
 		iterator = listint_iterator(connectionSet);
 		while(listint_iterator_hasNext(iterator)) {
@@ -122,7 +123,7 @@ void listening() {
 				continue;
 			}
 			//接收数据流
-			ret = recv(connection, buff, sizeof(buff), 0);
+			ret = recv(connection, msg, sizeof(msg), 0);
 			//返回长度为0，意味着客户端断开连接，这时服务端也可以断开连接并从连接池中去除该连接
 			if(ret <= 0) {
 //				printf("客户端断开连接\n");
@@ -130,11 +131,11 @@ void listening() {
 				listint_delete(connectionSet, node);
 				continue;
 			}
-			buff[ret] = '\0';
+			msg[ret] = '\0';
 			
-			char* msg = buff;
 			//需要向客户端返回的字符串
-			char returnChars[MAX_SEND_SIZE] = {0};
+			char returnChars[MAX_SEND_SIZE];
+			returnChars[0] = '\0';
 			int res = message_action(connection, msg, returnChars);
 			if(res != 0) {
 				connection_clear(connection);
